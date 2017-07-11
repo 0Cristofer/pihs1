@@ -1,6 +1,6 @@
-# Trabalho 1 de phis
+# Trabalho 1 de pihs
 # Author: Bruno Cesar e Cristofer Oswald
-# 6/7/17
+# 06/07/2017
 
 # Programa que resolve sistemas de equações lineares de 3 equações com 3 variaveis
 # Valores são inteiros. A solução deve ser feita com o uso de matriz.
@@ -28,7 +28,7 @@
 # Det = A + B
 
 # Cramer: (solução do sistema)
-# Para aplicar cramer primeiro calculasse a determinante da matriz (D)
+# Para aplicar cramer primeiro calcula - se a determinante da matriz (D)
 # Depois deve-se calcular os determinantes das matrizes substituidas:
 # D1 é o determinante da matriz onde a coluna do X é substituida pelos resultados
 # D2 é o determinante da matriz onde a coluna do Y é substituida pelos resultados
@@ -57,3 +57,14 @@ pedx1: .asciz "x1 = "
 pedx2: .asciz "x2 = "
 pedx3: .asciz "x3 = "
 pedres: .asciz "Resultado = "
+coeficientes: .int 0
+resultados: .int 0
+mat_sub: .int 0
+sol: .space 12
+det_princ: .int 0
+det_coef: .int 0
+
+.section .text
+.globl main
+main:
+    
