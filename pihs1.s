@@ -52,19 +52,175 @@
 titulo: .asciz "*** Super solucionador de sistemas lineares 3x3! ***\n"
 info1: .asciz "Vamos começar pela leitura dos dados:\n Por favor digite os dados da equação 1:\n"
 info2: .asciz "\n\nAgora os dados da equação 2:\n"
-info3: .asciz "\n\nE finalmente os dados da equação 3:"
-pedx1: .asciz "x1 = "
-pedx2: .asciz "x2 = "
-pedx3: .asciz "x3 = "
+info3: .asciz "\n\nE finalmente os dados da equação 3:\n"
+pedex1: .asciz "x1 = "
+pedex2: .asciz "x2 = "
+pedex3: .asciz "x3 = "
+infosis: .asciz "\nO sistema montado foi\n"
+linha: .asciz "[ %d , %d , %d ] = %d\n"
 pedres: .asciz "Resultado = "
+formaint: .asciz "%d"
+
 coeficientes: .int 0
 resultados: .int 0
 mat_sub: .int 0
 sol: .space 12
 det_princ: .int 0
 det_coef: .int 0
+vet_tam: .int 36
+res_tam: .int 12
 
 .section .text
 .globl main
 main:
-    
+    jmp inicio
+
+le_linha:
+    pushl %eax
+
+    pushl %edi
+    pushl $pedex1
+    call printf
+    addl $4, %esp
+    pushl $formaint
+    call scanf
+    addl $4, %esp
+
+    popl %edi
+    addl $4, %edi
+
+    pushl %edi
+    pushl $pedex2
+    call printf
+    addl $4, %esp
+    pushl $formaint
+    call scanf
+    addl $4, %esp
+
+    popl %edi
+    addl $4, %edi
+
+    pushl %edi
+    pushl $pedex3
+    call printf
+    add $4, %esp
+    pushl $formaint
+    call scanf
+    addl $4, %esp
+
+    popl %edi
+    addl $4, %edi
+
+    pushl $pedres
+    call printf
+    addl $4, %esp
+    pushl $formaint
+    call scanf
+    addl $4, %esp
+
+    popl %eax
+    addl $4, %eax
+
+    RET
+
+mostra_linha:
+    pushl %eax
+    pushl %edi
+
+    pushl (%eax)
+
+    addl $8, %edi
+    pushl (%edi)
+
+    subl $4, %edi
+    pushl (%edi)
+
+    subl $4, %edi
+    pushl (%edi)
+
+    pushl $linha
+    call printf
+    addl $20, %esp
+
+    popl %edi
+    popl %eax
+
+    addl $4, %eax
+    addl $12, %edi
+
+    RET
+
+mostra_sistema:
+    pushl %eax
+    pushl %edi
+
+    pushl $infosis
+    call printf
+    addl $4, %esp
+
+    popl %edi
+    popl %eax
+
+    call mostra_linha
+    call mostra_linha
+    call mostra_linha
+
+    subl $12, %eax # retorna pro inicio do vetor
+    subl $36, %edi # retorna pro inicio do vetor
+    RET
+
+inicio:
+    pushl $titulo
+    call printf
+    addl $4, %esp
+
+    movl vet_tam, %ecx
+    pushl %ecx
+    call malloc
+    movl %eax, coeficientes
+    movl coeficientes, %edi
+
+    movl res_tam, %ecx
+    pushl %ecx
+    call malloc
+    movl %eax, resultados
+    movl resultados, %eax
+
+    pushl %eax
+    pushl %edi
+
+    pushl $info1
+    call printf
+    addl $4, %esp
+    popl %edi
+    popl %eax
+    call le_linha
+
+    pushl %eax
+    pushl %edi
+
+    pushl $info2
+    call printf
+    addl $4, %esp
+    popl %edi
+    popl %eax
+    call le_linha
+
+    pushl %eax
+    pushl %edi
+
+    pushl $info3
+    call printf
+    addl $4, %esp
+    popl %edi
+    popl %eax
+    call le_linha
+
+    subl $36, %edi # retorna pro inicio do vetor
+    subl $12, %eax # retorna pro inicio do vetor
+
+    call mostra_sistema
+
+fim:
+    pushl $0
+    call exit
