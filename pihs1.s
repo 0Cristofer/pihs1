@@ -47,7 +47,6 @@
 # 7) Perguntar se o usuário quer repetir a operação se sim então volte para 1)
 # 8) Fim
 
-
 .section .data
 titulo: .asciz "*** Super solucionador de sistemas lineares 3x3! ***\n"
 info1: .asciz "Vamos começar pela leitura dos dados:\n Por favor digite os dados da equação 1:\n"
@@ -74,6 +73,14 @@ res_tam: .int 12
 .globl main
 main:
     jmp inicio
+
+calc_det:
+    popl %ecx
+    movl %eax %ecx
+    addl %ecx $16
+    imul %ecx
+
+    RET
 
 le_linha:
     pushl %eax
