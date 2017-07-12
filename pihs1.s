@@ -63,6 +63,7 @@ infosis: .asciz "\nO sistema montado foi\n"
 linha: .asciz "[ %d , %d , %d ] = %d\n"
 pedres: .asciz "Resultado = "
 formaint: .asciz "%d"
+solucao: .asciz "Solução: x = %d, y = %d, z = %d\n"
 debug_linha: .asciz "\ndebug: %d\n"
 debug_valor: .asciz "\nvalor: %d\n"
 
@@ -70,9 +71,11 @@ coeficientes: .int 0
 resultados: .int 0
 mat_sub: .int 0
 val_linha: .int 0
-sol: .space 12
+sol: .int 0
 det_princ: .int 0
-det_coef: .int 0
+det_x: .int 0
+det_y: .int 0
+det_z: .int 0
 vet_tam: .int 36
 res_tam: .int 12
 
@@ -159,7 +162,7 @@ calc_det:
     popl %ebp # volta o ponteiro base
     ret
 
-# recebe o ponteiro pro vetor da matriz, a coluna que vai ser substituida e a coluna de origem
+# recebe o ponteiro pro vetor do vetor (matriz), a coluna que vai ser substituida e a coluna de origem
 substitui_coluna:
     pushl %ebp # salva o ponteiro base
     movl %esp, %ebp # substiui o ponteiro do frame
@@ -174,37 +177,24 @@ substitui_coluna:
     movl $4, %ecx # inicia ecx com 4
     movl %ebx, %eax # move o numero da coluna pro eax
     mul %ecx # multiplica eax por ecx
-    movl %eax, %ecx
+    movl %eax, %ecx # move o resultado pro ecx
 
-    addl %ecx, %edi
-    movl (%esi), %edi
+    # substitui o primeiro valor
+    addl %ecx, %edi # coloca o ponteiro do vetor (matriz) no elemento inicial
+    movl (%esi), %ebx # move o valor do vetor de resultados no ebx
+    movl %ebx, (%edi) # substitui o valor apontado por edi pelo valor de ebx
 
-    addl $12, %ecx
+    addl $4, %esi # avança para o próximo resultado
 
-    addl %ecx, %edi
+    addl $12, %edi # pula pra próxima linha
+    movl (%esi), %ebx
+    movl %ebx, (%edi)
+
     addl $4, %esi
-    movl (%esi), %edi
 
-    addl $12, %ecx
-
-    addl %ecx, %edi
-    addl $4, %esi
-    movl (%esi), %edi
-
-
-
-
-    # debug
-    pushl coeficientes
-    pushl resultados
-    call mostra_sistema
-    addl $8, %esp
-
-
-
-    # 0  4  8
-    # 12 16 20
-    # 24 28 32
+    addl $12, %edi
+    movl (%esi), %ebx
+    movl %ebx, (%edi)
 
     popl %ebp # volta o ponteiro base
     ret
@@ -369,6 +359,29 @@ mostra_sistema:
     popl %ebp
     ret
 
+# recebe o ponteiro para o vetor com a solução
+mostra_sol:
+    pushl %ebp # salva o ponteiro base
+    movl %esp, %ebp # substiui o ponteiro do frame
+
+    addl $8, %ebp # le o vetor
+    movl (%ebp), %edi # move o parametro pro edi
+
+    addl $8, %edi # move o ponteiro para a ultima posição
+    pushl (%edi)
+
+    subl $4, %edi # vai para a segunda
+    pushl (%edi)
+
+    subl $4, %edi # vai para a primeira
+    pushl (%edi)
+
+    pushl $solucao
+    call printf
+    addl $16, %esp
+
+    popl %ebp
+    ret
 inicio:
     pushl $titulo
     call printf
@@ -396,6 +409,13 @@ inicio:
     call malloc
     addl $4, %esp
     movl %eax, mat_sub
+
+    # aloca o vetor da solução
+    movl vet_tam, %ecx
+    pushl %ecx
+    call malloc
+    addl $4, %esp
+    movl %eax, sol
 
     # backup dos dados
     pushl %edi
@@ -519,6 +539,19 @@ inicio:
     call substitui_coluna
     addl $12, %esp
 
+    # calcula o Dx
+    pushl mat_sub
+    call calc_det
+    addl $4, %esp
+    movl %eax, det_x
+
+    # copia o vetor de coeficientes para o vetor que será usado para o calculo das outras determinantes
+    pushl vet_tam
+    pushl coeficientes
+    pushl mat_sub
+    call memcpy
+    addl $12, %esp
+
     # desempilha o backup
     popl %esi
     popl %edi
@@ -532,6 +565,19 @@ inicio:
     pushl $1
     pushl mat_sub
     call substitui_coluna
+    addl $12, %esp
+
+    # calcula o Dy
+    pushl mat_sub
+    call calc_det
+    addl $4, %esp
+    movl %eax, det_y
+
+    # copia o vetor de coeficientes para o vetor que será usado para o calculo das outras determinantes
+    pushl vet_tam
+    pushl coeficientes
+    pushl mat_sub
+    call memcpy
     addl $12, %esp
 
     # desempilha o backup
@@ -549,10 +595,46 @@ inicio:
     call substitui_coluna
     addl $12, %esp
 
+    # calcula o Dz
+    pushl mat_sub
+    call calc_det
+    addl $4, %esp
+    movl %eax, det_z
+
+    movl sol, %edi # move o vetor de soluções pro edi
+
+    # calcula a solução de x
+    movl det_x, %eax
+    movl det_princ, %ebx
+    div %ebx
+    movl %eax, (%edi)
+
+    addl $4, %edi # avança o edi pra próxima posição
+
+    # calcula a solução de y
+    movl det_y, %eax
+    movl det_princ, %ebx
+    div %ebx
+    movl %eax, (%edi)
+
+    addl $4, %edi
+
+    # calcula a solução de z
+    movl det_z, %eax
+    movl det_princ, %ebx
+    div %ebx
+    movl %eax, (%edi)
+
+    subl $8, %edi # volta o edi pro começo do vetor
+
+    # imprime a solução
+    pushl %edi
+    call mostra_sol
+    addl $4, %esp
+
     # desempilha o backup
     popl %esi
     popl %edi
-
 
 fim:
     pushl $0
