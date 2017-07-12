@@ -12,6 +12,10 @@
 # Um relatório em word deve ser desenvolvido, nele deve ser explicado o funcionamento
 # do programa e apontar os problemas no código.
 
+# 0  4  8
+# 12 16 20
+# 24 28 32
+
 # Sarrus: (Calculo da determinante)
 # l1 = x00 * x11 * x22
 # l2 = x01 * x12 * x20
@@ -49,7 +53,7 @@
 
 .section .data
 titulo: .asciz "*** Super solucionador de sistemas lineares 3x3! ***\n"
-info1: .asciz "Vamos começar pela leitura dos dados:\n Por favor digite os dados da equação 1:\n"
+info1: .asciz "Vamos começar pela leitura dos dados:\nPor favor digite os dados da equação 1:\n"
 info2: .asciz "\n\nAgora os dados da equação 2:\n"
 info3: .asciz "\n\nE finalmente os dados da equação 3:\n"
 pedex1: .asciz "x1 = "
@@ -59,10 +63,13 @@ infosis: .asciz "\nO sistema montado foi\n"
 linha: .asciz "[ %d , %d , %d ] = %d\n"
 pedres: .asciz "Resultado = "
 formaint: .asciz "%d"
+debug_linha: .asciz "\ndebug: %d\n"
+debug_valor: .asciz "\nvalor: %d\n"
 
 coeficientes: .int 0
 resultados: .int 0
 mat_sub: .int 0
+val_linha: .int 0
 sol: .space 12
 det_princ: .int 0
 det_coef: .int 0
@@ -74,159 +81,478 @@ res_tam: .int 12
 main:
     jmp inicio
 
+# calcula o determinante de uma matriz. recebe o pontiro pro vetor da matriz como parametro
+# e "retorna" o determinante a partir do registrador eax
 calc_det:
-    popl %ecx
-    movl %eax %ecx
-    addl %ecx $16
-    imul %ecx
+    pushl %ebp # salva o ponteiro base
+    movl %esp, %ebp # substiui o ponteiro do frame
 
-    RET
+    addl $8, %ebp # le ao vetor
+    movl (%ebp), %edi # move o parametro pro edi
 
+    movl $0, %ecx # inicializa ecx
+
+    # linha 1
+    movl (%edi), %eax # move o valor de 0, 0 para eax
+    addl $16, %edi # vai para a posição 1, 1
+    movl (%edi), %ebx # move o valor da posição 1, 1 apra ebx
+    mul %ebx # multiplica eax por ebx
+    addl $16, %edi # vai para a posição 2, 2
+    movl (%edi), %ebx # move o valor da posição 2, 2 apra ebx
+    mul %ebx # multiplica eax por ebx
+    addl %eax, %ecx
+
+    subl $28, %edi # vai para a posição 0, 1
+    movl (%edi), %eax # move o valor de 0, 1 para eax
+    addl $16, %edi # vai para a posição 1, 2
+    movl (%edi), %ebx # move o valor da posição 1, 2 apra ebx
+    mul %ebx # multiplica eax por ebx
+    addl $4, %edi # vai para a posição 2, 0
+    movl (%edi), %ebx # move o valor da posição 2, 0 apra ebx
+    mul %ebx # multiplica eax por ebx
+    addl %eax, %ecx
+
+    subl $16, %edi # vai para a posição 0, 2
+    movl (%edi), %eax # move o valor de 0, 2 para eax
+    addl $4, %edi # vai para a posição 1, 0
+    movl (%edi), %ebx # move o valor da posição 1, 0 apra ebx
+    mul %ebx # multiplica eax por ebx
+    addl $16, %edi # vai para a posição 2, 1
+    movl (%edi), %ebx # move o valor da posição 2, 1 apra ebx
+    mul %ebx # multiplica eax por ebx
+    addl %eax, %ecx
+
+    # linha 2
+
+    subl $20, %edi # vai para a posição 0, 2
+    movl (%edi), %eax # move o valor de 0, 2 para eax
+    addl $8, %edi # vai para a posição 1, 1
+    movl (%edi), %ebx # move o valor da posição 1, 1 apra ebx
+    mul %ebx # multiplica eax por ebx
+    addl $8, %edi # vai para a posição 2, 0
+    movl (%edi), %ebx # move o valor da posição 2, 0 apra ebx
+    mul %ebx # multiplica eax por ebx
+    subl %eax, %ecx
+
+    subl $20, %edi # vai para a posição 0, 1
+    movl (%edi), %eax # move o valor de 0, 1 para eax
+    addl $8, %edi # vai para a posição 1, 0
+    movl (%edi), %ebx # move o valor da posição 1, 0 apra ebx
+    mul %ebx # multiplica eax por ebx
+    addl $20, %edi # vai para a posição 2, 2
+    movl (%edi), %ebx # move o valor da posição 2, 2 apra ebx
+    mul %ebx # multiplica eax por ebx
+    subl %eax, %ecx
+
+    subl $32, %edi # vai para a posição 0, 0
+    movl (%edi), %eax # move o valor de 0, 0 para eax
+    addl $20, %edi # vai para a posição 1, 2
+    movl (%edi), %ebx # move o valor da posição 1, 2 apra ebx
+    mul %ebx # multiplica eax por ebx
+    addl $8, %edi # vai para a posição 2, 1
+    movl (%edi), %ebx # move o valor da posição 2, 1 apra ebx
+    mul %ebx # multiplica eax por ebx
+    subl %eax, %ecx
+
+    movl %ecx, %eax # coloca o valor do determinante no eax
+
+    popl %ebp # volta o ponteiro base
+    ret
+
+# recebe o ponteiro pro vetor da matriz, a coluna que vai ser substituida e a coluna de origem
+substitui_coluna:
+    pushl %ebp # salva o ponteiro base
+    movl %esp, %ebp # substiui o ponteiro do frame
+
+    addl $8, %ebp # le a matriz
+    movl (%ebp), %edi # move o parametro pro edi
+    addl $4, %ebp # le o numero da coluna
+    movl (%ebp), %ebx # move o parametro pro edx
+    addl $4, %ebp # le o vetor a ser colocado no destino
+    movl (%ebp), %esi # move o parametro pro esi
+
+    movl $4, %ecx # inicia ecx com 4
+    movl %ebx, %eax # move o numero da coluna pro eax
+    mul %ecx # multiplica eax por ecx
+    movl %eax, %ecx
+
+    addl %ecx, %edi
+    movl (%esi), %edi
+
+    addl $12, %ecx
+
+    addl %ecx, %edi
+    addl $4, %esi
+    movl (%esi), %edi
+
+    addl $12, %ecx
+
+    addl %ecx, %edi
+    addl $4, %esi
+    movl (%esi), %edi
+
+
+
+
+    # debug
+    pushl coeficientes
+    pushl resultados
+    call mostra_sistema
+    addl $8, %esp
+
+
+
+    # 0  4  8
+    # 12 16 20
+    # 24 28 32
+
+    popl %ebp # volta o ponteiro base
+    ret
+
+# recebe o ponteiro pro começo da linha a ser lida e o ponteiro para a posição no vetor de respostas
 le_linha:
-    pushl %eax
+    pushl %ebp # salva o ponteiro base
+    movl %esp, %ebp # substiui o ponteiro do frame
 
-    pushl %edi
+    addl $8, %ebp # le a linha
+    movl (%ebp), %edi # move o parametro pro edi
+    addl $4, %ebp # le a posição no vetor
+    movl (%ebp), %esi # move o parametro pro esi
+
+    pushl %edi # backup
+
     pushl $pedex1
     call printf
     addl $4, %esp
+
+    # le x1
+    pushl %edi
     pushl $formaint
     call scanf
-    addl $4, %esp
+    addl $8, %esp
 
-    popl %edi
-    addl $4, %edi
+    popl %edi # recupera o edi
+    addl $4, %edi # move o ponteiro pra poxima posição
 
     pushl %edi
+
     pushl $pedex2
     call printf
     addl $4, %esp
+
+    # le x2
+    pushl %edi
     pushl $formaint
     call scanf
-    addl $4, %esp
+    addl $8, %esp
 
     popl %edi
     addl $4, %edi
 
-    pushl %edi
+    # não precisa de backup porque não vai usar mais
+
     pushl $pedex3
     call printf
-    add $4, %esp
-    pushl $formaint
-    call scanf
     addl $4, %esp
 
-    popl %edi
-    addl $4, %edi
+    # le x3
+    pushl %edi
+    pushl $formaint
+    call scanf
+    addl $8, %esp # não precisa pegar o valor de edi mais
 
     pushl $pedres
     call printf
     addl $4, %esp
+
+    # le a resposta
+    pushl %esi
     pushl $formaint
     call scanf
-    addl $4, %esp
+    addl $8, %esp
 
-    popl %eax
-    addl $4, %eax
+    popl %ebp
+    ret
 
-    RET
-
+# recebe o ponteiro pro começo da linha a ser mostrada e o ponteiro para a posição no vetor de respostas
 mostra_linha:
-    pushl %eax
-    pushl %edi
+    pushl %ebp # salva o ponteiro base
+    movl %esp, %ebp # substiui o ponteiro do frame
 
-    pushl (%eax)
+    addl $8, %ebp # le a linha
+    movl (%ebp), %edi # move o parametro pro edi
+    addl $4, %ebp # le a posição no vetor
+    movl (%ebp), %esi # move o parametro pro esi
 
-    addl $8, %edi
+    pushl (%esi) # empilha o resultado
+
+    addl $8, %edi # empilha primeiro o x3
     pushl (%edi)
 
-    subl $4, %edi
+    subl $4, %edi # volta para o x2
     pushl (%edi)
 
-    subl $4, %edi
+    subl $4, %edi # volta para o x1
     pushl (%edi)
 
     pushl $linha
     call printf
     addl $20, %esp
 
-    popl %edi
-    popl %eax
+    popl %ebp
+    ret
 
-    addl $4, %eax
-    addl $12, %edi
-
-    RET
-
+# recebe o ponteiro pro vetor com os coeficientes e o vetor de resultados
 mostra_sistema:
-    pushl %eax
+    pushl %ebp # salva o ponteiro base
+    movl %esp, %ebp # substiui o ponteiro do frame
+
+    addl $8, %ebp # le a linha
+    movl (%ebp), %edi # move o parametro pro edi
+    addl $4, %ebp # le o vetor a ser colocado no destino
+    movl (%ebp), %esi # move o parametro pro esi
+
+    # backup dos dados
     pushl %edi
+    pushl %esi
 
     pushl $infosis
     call printf
     addl $4, %esp
 
+    # le o backup
+    popl %esi
     popl %edi
-    popl %eax
 
-    call mostra_linha
-    call mostra_linha
-    call mostra_linha
+    # faz novo backup
+    pushl %edi
+    pushl %esi
 
-    subl $12, %eax # retorna pro inicio do vetor
-    subl $36, %edi # retorna pro inicio do vetor
-    RET
+    # empilha os parâmetros
+    pushl %esi
+    pushl %edi
+    call mostra_linha
+    addl $8, %esp
+
+    # le o backup
+    popl %esi
+    popl %edi
+
+    addl $12, %edi # pula pra proxima linha
+    addl $4, %esi # pula pro proximo resultado
+
+    # faz novo backup
+    pushl %edi
+    pushl %esi
+
+    # empilha os parâmetros
+    pushl %esi
+    pushl %edi
+    call mostra_linha
+    addl $8, %esp
+
+    # le o backup
+    popl %esi
+    popl %edi
+
+    addl $12, %edi # pula pra proxima linha
+    addl $4, %esi # pula pro proximo resultado
+
+    # não precisa de backup no final
+
+    # empilha os parâmetros
+    pushl %esi
+    pushl %edi
+    call mostra_linha
+    addl $8, %esp
+
+    popl %ebp
+    ret
 
 inicio:
     pushl $titulo
     call printf
     addl $4, %esp
 
+    # aloca o vetor de coeficientes
     movl vet_tam, %ecx
     pushl %ecx
     call malloc
+    addl $4, %esp
     movl %eax, coeficientes
     movl coeficientes, %edi
 
+    # aloca o vetor de resultados
     movl res_tam, %ecx
     pushl %ecx
     call malloc
+    addl $4, %esp
     movl %eax, resultados
-    movl resultados, %eax
+    movl resultados, %esi
 
-    pushl %eax
+    # aloca o vetor de coeficientes substituidos
+    movl vet_tam, %ecx
+    pushl %ecx
+    call malloc
+    addl $4, %esp
+    movl %eax, mat_sub
+
+    # backup dos dados
     pushl %edi
+    pushl %esi
 
     pushl $info1
     call printf
     addl $4, %esp
-    popl %edi
-    popl %eax
-    call le_linha
 
-    pushl %eax
+    # empilha os parametros
+    pushl %esi
     pushl %edi
+    call le_linha
+    addl $8, %esp
+
+    # desempilha o backup
+    popl %esi
+    popl %edi
+
+    addl $12, %edi # pula pra próxima linha
+    addl $4, %esi # pula pro próximo campo
+
+    # backup dos dados
+    pushl %edi
+    pushl %esi
 
     pushl $info2
     call printf
     addl $4, %esp
-    popl %edi
-    popl %eax
-    call le_linha
 
-    pushl %eax
+    # empilha os parametros
+    pushl %esi
     pushl %edi
+    call le_linha
+    addl $8, %esp
+
+    # desempilha o backup
+    popl %esi
+    popl %edi
+
+    addl $12, %edi # pula pra próxima linha
+    addl $4, %esi # pula pro próximo campo
+
+    # backup dos dados
+    pushl %edi
+    pushl %esi
 
     pushl $info3
     call printf
     addl $4, %esp
-    popl %edi
-    popl %eax
+
+    # empilha os parametros
+    pushl %esi
+    pushl %edi
     call le_linha
+    addl $8, %esp
 
-    subl $36, %edi # retorna pro inicio do vetor
-    subl $12, %eax # retorna pro inicio do vetor
+    # desempilha o backup
+    popl %esi
+    popl %edi
 
+    subl $24, %edi # retorna pro inicio do vetor
+    subl $8, %esi # retorna pro inicio do vetor
+
+    # backup dos dados
+    pushl %edi
+    pushl %esi
+
+    # empilha os parametros
+    pushl %esi
+    pushl %edi
     call mostra_sistema
+    addl $8, %esp
+
+    # desempilha o backup
+    popl %esi
+    popl %edi
+
+    # aqui o sistema está lido e edi aponta para o começo dos coeficientes e esi para o começo dos resultados
+
+    # backup dos dados
+    pushl %edi
+    pushl %esi
+
+    pushl %edi
+    call calc_det
+    addl $4, %esp
+    movl %eax, det_princ
+
+    # desempilha o backup
+    popl %esi
+    popl %edi
+
+    # ponteiros em seus lugares e det_princ tem o valor do determinante
+
+    # backup dos dados
+    pushl %edi
+    pushl %esi
+
+    # copia o vetor de coeficientes para o vetor que será usado para o calculo das outras determinantes
+    pushl vet_tam
+    pushl coeficientes
+    pushl mat_sub
+    call memcpy
+    addl $12, %esp
+
+    # desempilha o backup
+    popl %esi
+    popl %edi
+
+    # ponteiros em seus lugares e mat_sub aponta pro vetor copiado
+
+    # backup dos dados
+    pushl %edi
+    pushl %esi
+
+    # substitui a coluna pelos resultados
+    pushl %esi
+    pushl $0
+    pushl mat_sub
+    call substitui_coluna
+    addl $12, %esp
+
+    # desempilha o backup
+    popl %esi
+    popl %edi
+
+    # backup dos dados
+    pushl %edi
+    pushl %esi
+
+    # substitui a coluna pelos resultados
+    pushl %esi
+    pushl $1
+    pushl mat_sub
+    call substitui_coluna
+    addl $12, %esp
+
+    # desempilha o backup
+    popl %esi
+    popl %edi
+
+    # backup dos dados
+    pushl %edi
+    pushl %esi
+
+    # substitui a coluna pelos resultados
+    pushl %esi
+    pushl $2
+    pushl mat_sub
+    call substitui_coluna
+    addl $12, %esp
+
+    # desempilha o backup
+    popl %esi
+    popl %edi
+
 
 fim:
     pushl $0
