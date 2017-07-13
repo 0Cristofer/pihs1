@@ -382,6 +382,7 @@ mostra_sol:
 
     popl %ebp
     ret
+
 inicio:
     pushl $titulo
     call printf
@@ -606,7 +607,8 @@ inicio:
     # calcula a solução de x
     movl det_x, %eax
     movl det_princ, %ebx
-    div %ebx
+    cltd
+    idiv %ebx
     movl %eax, (%edi)
 
     addl $4, %edi # avança o edi pra próxima posição
@@ -614,7 +616,8 @@ inicio:
     # calcula a solução de y
     movl det_y, %eax
     movl det_princ, %ebx
-    div %ebx
+    cltd
+    idiv %ebx
     movl %eax, (%edi)
 
     addl $4, %edi
@@ -622,7 +625,8 @@ inicio:
     # calcula a solução de z
     movl det_z, %eax
     movl det_princ, %ebx
-    div %ebx
+    cltd
+    idiv %ebx
     movl %eax, (%edi)
 
     subl $8, %edi # volta o edi pro começo do vetor
