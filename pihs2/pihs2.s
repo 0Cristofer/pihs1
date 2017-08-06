@@ -72,6 +72,7 @@ clean_buffer: .string "%*c"
 info_det: .asciz "Impossível resolver, determinante é igual a 0\n"
 
 coeficientes: .int 0
+n:            .int 0
 dnv:          .int 0
 resultados:   .int 0
 mat_sub:      .int 0
