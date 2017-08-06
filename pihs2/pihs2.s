@@ -52,38 +52,44 @@
 # 8) Fim
 
 .section .data
-titulo: .asciz "*** Super solucionador de sistemas lineares 3x3! ***\n"
-info1: .asciz "Vamos começar pela leitura dos dados:\nPor favor digite os dados da equação 1:\n"
-info2: .asciz "\n\nAgora os dados da equação 2:\n"
-info3: .asciz "\n\nE finalmente os dados da equação 3:\n"
-pedex1: .asciz "x1 = "
-pedex2: .asciz "x2 = "
-pedex3: .asciz "x3 = "
+titulo:  .asciz "*** Super solucionador de sistemas lineares NxN!!! ***\n"
+info1:   .asciz "Vamos começar pela leitura dos dados:\nPor favor insira a ordem (N) da matriz: "
+info2:   .asciz "\n\nInsira os dados da equação %d:\n"
+infomem: .asciz "\nTotal de memória alocada:\n %d (Matriz entrada) + %d (resultados) + %d (determinantes)\n"
+pedex:   .asciz "x%d = "
+info3:   .asciz "" # apagar
+det_x:   .asciz "" # apagar
+det_y:   .asciz "" # apagar
+det_z:   .asciz "" # apagar
 infosis: .asciz "\nO sistema montado foi\n"
-linha: .asciz "[ %d , %d , %d ] = %d\n"
-pedres: .asciz "Resultado = "
+linha:   .asciz "[%d , %d , %d] = %d\n"
+virgula: .asciz " , "
+abre:    .asciz "["
+fecha:   .asciz "]"
+igual:   .asciz " = %d\n"
+pedres:  .asciz "Resultado = "
 formaint: .asciz "%d"
-solucao: .asciz "Solução: x = %d, y = %d, z = %d\n"
-debug_linha: .asciz "\ndebug: %d\n"
-debug_valor: .asciz "\nvalor: %d\n"
-info_fim: .asciz "Fim da execução!"
-info_dnv: .asciz "Deseja executar novamente? (s/n)"
+espaco:   .asciz " "
+solucao:  .asciz "Solução: x = %d, y = %d, z = %d\n"
+debug_linha:  .asciz "\ndebug: %d\n"
+debug_valor:  .asciz "\nvalor: %d\n"
+info_fim:     .asciz "Fim da execução!"
+info_dnv:     .asciz "Deseja executar novamente? (s/n)"
 clean_buffer: .string "%*c"
-info_det: .asciz "Impossível resolver, determinante é igual a 0\n"
+info_det:     .asciz "Impossível resolver, determinante é igual a 0\n"
 
-coeficientes: .int 0
-n:            .int 0
-dnv:          .int 0
-resultados:   .int 0
+n:            .int 0 # ordem da matriz
+coeficientes: .int 0 # matriz entrada
+dnv:          .int 0 # input sobre repetir
+resultados:   .int 0 # vetor de resultados
+determinantes: .int 0 # vetor de determinantes
 mat_sub:      .int 0
 val_linha:    .int 0
 sol:          .int 0
 det_princ:    .int 0
-det_x:        .int 0
-det_y:        .int 0
-det_z:        .int 0
-vet_tam:      .int 36
-res_tam:      .int 12
+det_tam:      .int 0 # * n
+vet_tam:      .int 4 # * n * n  (Size of int)
+res_tam:      .int 0 # * n
 
 .section .text
 .globl main
@@ -215,47 +221,35 @@ le_linha:
     addl $4, %ebp # le a posição no vetor
     movl (%ebp), %esi # move o parametro pro esi
 
-    pushl %edi # backup
+    movl n, %ecx # Contador do loop
+    movl $1, %ebx # Contador para o print
 
-    pushl $pedex1
-    call printf
-    addl $4, %esp
+loop_le_var:
+        # backups
+        pushl %ebx
+        pushl %ecx
+        pushl %edi
 
-    # le x1
-    pushl %edi
-    pushl $formaint
-    call scanf
-    addl $8, %esp
+        # Le a linha x
+        pushl %ebx
+        pushl $pedex
+        call printf
+        addl $8, %esp
 
-    popl %edi # recupera o edi
-    addl $4, %edi # move o ponteiro pra poxima posição
+        pushl %edi
+        pushl $formaint
+        call scanf
+        addl $8, %esp
 
-    pushl %edi
+        # Recupera os backups
+        popl %edi
+        popl %ecx
+        popl %ebx
 
-    pushl $pedex2
-    call printf
-    addl $4, %esp
+        addl $4, %edi # move o ponteiro pra poxima posição
+        addl $1, %ebx
 
-    # le x2
-    pushl %edi
-    pushl $formaint
-    call scanf
-    addl $8, %esp
-
-    popl %edi
-    addl $4, %edi
-
-    # não precisa de backup porque não vai usar mais
-
-    pushl $pedex3
-    call printf
-    addl $4, %esp
-
-    # le x3
-    pushl %edi
-    pushl $formaint
-    call scanf
-    addl $8, %esp # não precisa pegar o valor de edi mais
+    loop loop_le_var
 
     pushl $pedres
     call printf
@@ -280,20 +274,43 @@ mostra_linha:
     addl $4, %ebp # le a posição no vetor
     movl (%ebp), %esi # move o parametro pro esi
 
-    pushl (%esi) # empilha o resultado
+    movl n, %ecx # Contador de loop
 
-    addl $8, %edi # empilha primeiro o x3
-    pushl (%edi)
-
-    subl $4, %edi # volta para o x2
-    pushl (%edi)
-
-    subl $4, %edi # volta para o x1
-    pushl (%edi)
-
-    pushl $linha
+    # [
+    pushl $abre
     call printf
-    addl $20, %esp
+    addl $4, %esp
+
+loop_print:
+        pushl %ecx
+
+        # Printa o valor
+        pushl (%edi)
+        pushl $formaint
+        call printf
+        addl $8, %esp
+
+        # Printa " , "
+        pushl $virgula
+        call printf
+        addl $4, %esp
+
+        addl $4, %edi # Anda o vetor pra próxima posição
+
+        popl %ecx
+
+    loop loop_print
+
+    # ]
+    pushl $fecha
+    call printf
+    addl $4, %esp
+
+    # Printa o resultado
+    pushl (%esi)
+    pushl $igual
+    call printf
+    addl $8, %esp
 
     popl %ebp
     ret
@@ -320,47 +337,29 @@ mostra_sistema:
     popl %esi
     popl %edi
 
-    # faz novo backup
-    pushl %edi
-    pushl %esi
+    movl n, %ecx # Contador de loop
 
-    # empilha os parâmetros
-    pushl %esi
-    pushl %edi
-    call mostra_linha
-    addl $8, %esp
+    loop_printa_linha:
+        # faz novo backup
+        pushl %ecx
+        pushl %edi
+        pushl %esi
 
-    # le o backup
-    popl %esi
-    popl %edi
+        # empilha os parâmetros
+        pushl %esi
+        pushl %edi
+        call mostra_linha
+        addl $8, %esp
 
-    addl $12, %edi # pula pra proxima linha
-    addl $4, %esi # pula pro proximo resultado
+        # le o backup
+        popl %esi
+        popl %edi
+        popl %ecx
 
-    # faz novo backup
-    pushl %edi
-    pushl %esi
+        addl res_tam, %edi # pula pra proxima linha
+        addl $4, %esi # pula pro proximo resultado
 
-    # empilha os parâmetros
-    pushl %esi
-    pushl %edi
-    call mostra_linha
-    addl $8, %esp
-
-    # le o backup
-    popl %esi
-    popl %edi
-
-    addl $12, %edi # pula pra proxima linha
-    addl $4, %esi # pula pro proximo resultado
-
-    # não precisa de backup no final
-
-    # empilha os parâmetros
-    pushl %esi
-    pushl %edi
-    call mostra_linha
-    addl $8, %esp
+        loop loop_printa_linha
 
     popl %ebp
     ret
@@ -389,12 +388,72 @@ mostra_sol:
     popl %ebp
     ret
 
+# Recebe o ponteiro para a matriz
+le_sistema:
+    pushl %ebp # salva o ponteiro base
+    movl %esp, %ebp # substiui o ponteiro do frame
+
+    movl $1, %eax # Contador de linhas para o print
+    movl n, %ecx # Contador de loops
+
+loop_le_linha:
+        pushl %eax
+        pushl %ecx
+        pushl %edi
+        pushl %esi
+
+        # Printa mensagem de "Insira linha X:"
+        pushl %eax
+        pushl $info2
+        call printf
+        addl $8, %esp
+
+        # empilha os parametros
+        pushl %esi
+        pushl %edi
+        call le_linha
+        addl $8, %esp
+
+        # desempilha o backup
+        popl %esi
+        popl %edi
+        popl %ecx
+        popl %eax
+
+        addl $12, %edi # pula pra próxima linha
+        addl $4, %esi # pula pro próximo campo
+
+        addl $1, %eax
+
+    loop loop_le_linha
+
+    popl %ebp
+    ret
+
+# Main
 inicio:
     pushl $titulo
     call printf
     addl $4, %esp
 
-    # aloca o vetor de coeficientes
+    pushl $info1
+    call printf
+    addl $4, %esp
+
+    pushl $n
+    pushl $formaint
+    call scanf
+    addl $8, %esp
+
+    movl n, %ebx
+    movl vet_tam, %eax # vet_tam inicia com 4 (size of int)
+    mul %ebx
+    movl %eax, res_tam # res_tam tem agora 4 * n
+    movl %eax, det_tam # det_tam tem agora 4 * n
+    mul %ebx
+    movl %eax, vet_tam # vet_tam tem agora 4 * n * n = tamanho da matriz (em bytes)
+
+    # Aloca a matriz
     movl vet_tam, %ecx
     pushl %ecx
     call malloc
@@ -410,6 +469,14 @@ inicio:
     movl %eax, resultados
     movl resultados, %esi
 
+    # Printa informações sobre memoria alocada
+    pushl res_tam
+    pushl det_tam
+    pushl vet_tam
+    pushl $infomem
+    call printf
+    addl $16, %esp
+
     # aloca o vetor de coeficientes substituidos
     movl vet_tam, %ecx
     pushl %ecx
@@ -418,74 +485,24 @@ inicio:
     movl %eax, mat_sub
 
     # aloca o vetor da solução
-    movl vet_tam, %ecx
+    movl res_tam, %ecx
     pushl %ecx
     call malloc
     addl $4, %esp
     movl %eax, sol
 
-    # backup dos dados
-    pushl %edi
-    pushl %esi
-
-    pushl $info1
-    call printf
-    addl $4, %esp
-
-    # empilha os parametros
+    # backups
     pushl %esi
     pushl %edi
-    call le_linha
+
+    pushl %esi
+    pushl %edi
+    call le_sistema
     addl $8, %esp
 
-    # desempilha o backup
-    popl %esi
+    # recupera backup
     popl %edi
-
-    addl $12, %edi # pula pra próxima linha
-    addl $4, %esi # pula pro próximo campo
-
-    # backup dos dados
-    pushl %edi
-    pushl %esi
-
-    pushl $info2
-    call printf
-    addl $4, %esp
-
-    # empilha os parametros
-    pushl %esi
-    pushl %edi
-    call le_linha
-    addl $8, %esp
-
-    # desempilha o backup
     popl %esi
-    popl %edi
-
-    addl $12, %edi # pula pra próxima linha
-    addl $4, %esi # pula pro próximo campo
-
-    # backup dos dados
-    pushl %edi
-    pushl %esi
-
-    pushl $info3
-    call printf
-    addl $4, %esp
-
-    # empilha os parametros
-    pushl %esi
-    pushl %edi
-    call le_linha
-    addl $8, %esp
-
-    # desempilha o backup
-    popl %esi
-    popl %edi
-
-    subl $24, %edi # retorna pro inicio do vetor
-    subl $8, %esi # retorna pro inicio do vetor
 
     # backup dos dados
     pushl %edi
@@ -501,6 +518,7 @@ inicio:
     popl %esi
     popl %edi
 
+    jmp fim # testando até aqui
     # aqui o sistema está lido e edi aponta para o começo dos coeficientes e esi para o começo dos resultados
 
     # backup dos dados
