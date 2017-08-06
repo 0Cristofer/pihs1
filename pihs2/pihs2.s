@@ -66,7 +66,7 @@ formaint: .asciz "%d"
 solucao: .asciz "Solução: x = %d, y = %d, z = %d\n"
 debug_linha: .asciz "\ndebug: %d\n"
 debug_valor: .asciz "\nvalor: %d\n"
-info_fim: .asciz "Fim da execução!"
+info_fim: .asciz "Fim da execução!\n"
 info_dnv: .asciz "Deseja executar novamente? (s/n)"
 clean_buffer: .string "%*c"
 info_det: .asciz "Impossível resolver, determinante é igual a 0\n"
@@ -90,9 +90,44 @@ res_tam:      .int 12
 main:
     jmp inicio
 
+# calcula o determinante de uma matriz NxN. Recebe o ponteiro pro vetor (matriz) como parametro e a ordem da matriz
+# retorna o determinante por eax
+la_place:
+    pushl %ebp # salva o ponteiro base
+    movl %esp, %ebp # substiui o ponteiro do frame
+
+    addl $8, %ebp # le o vetor
+    movl (%ebp), %edi # move o parametro pro edi
+    addl $4, %ebp # le a ordem
+    movl (%ebp), %ebx # move o parametro pro edx
+
+    cmpl %ebx, 3
+    je calc
+    movl n, %ecx
+    jne diminui
+
+volta:
+    popl %ebp # volta o ponteiro base
+    ret
+
+calc:
+    pushl %edi
+
+    pushl %edi
+    call sarrus
+    addl $4, %esp
+
+    popl %edi
+    jmp volta
+
+diminui:
+    call la_place
+    loop diminui
+    jmp volta
+
 # calcula o determinante de uma matriz. recebe o pontiro pro vetor da matriz como parametro
 # e "retorna" o determinante a partir do registrador eax
-calc_det:
+sarrus:
     pushl %ebp # salva o ponteiro base
     movl %esp, %ebp # substiui o ponteiro do frame
 
@@ -184,23 +219,22 @@ substitui_coluna:
     movl %ebx, %eax # move o numero da coluna pro eax
     mul %ecx # multiplica eax por ecx
     movl %eax, %ecx # move o resultado pro ecx
-
-    # substitui o primeiro valor
     addl %ecx, %edi # coloca o ponteiro do vetor (matriz) no elemento inicial
+    movl n, %ecx
+
+subs:
+    # substitui o primeiro valor
     movl (%esi), %ebx # move o valor do vetor de resultados no ebx
     movl %ebx, (%edi) # substitui o valor apontado por edi pelo valor de ebx
 
     addl $4, %esi # avança para o próximo resultado
 
-    addl $12, %edi # pula pra próxima linha
-    movl (%esi), %ebx
-    movl %ebx, (%edi)
+    movl n, %eax
+    movl $4, %edx
+    mul %edx
+    addl %eax, %edi # pula pra próxima linha
 
-    addl $4, %esi
-
-    addl $12, %edi
-    movl (%esi), %ebx
-    movl %ebx, (%edi)
+    loop subs
 
     popl %ebp # volta o ponteiro base
     ret
@@ -390,6 +424,8 @@ mostra_sol:
     ret
 
 inicio:
+    movl $3, n
+
     pushl $titulo
     call printf
     addl $4, %esp
@@ -507,9 +543,10 @@ inicio:
     pushl %edi
     pushl %esi
 
+    pushl n
     pushl %edi
-    call calc_det
-    addl $4, %esp
+    call sarrus
+    addl $8, %esp
     movl %eax, det_princ
 
     cmpl $0, %eax
@@ -550,9 +587,10 @@ inicio:
     addl $12, %esp
 
     # calcula o Dx
+    pushl n
     pushl mat_sub
-    call calc_det
-    addl $4, %esp
+    call sarrus
+    addl $8, %esp
     movl %eax, det_x
 
     # copia o vetor de coeficientes para o vetor que será usado para o calculo das outras determinantes
@@ -578,9 +616,10 @@ inicio:
     addl $12, %esp
 
     # calcula o Dy
+    pushl n
     pushl mat_sub
-    call calc_det
-    addl $4, %esp
+    call sarrus
+    addl $8, %esp
     movl %eax, det_y
 
     # copia o vetor de coeficientes para o vetor que será usado para o calculo das outras determinantes
@@ -606,9 +645,10 @@ inicio:
     addl $12, %esp
 
     # calcula o Dz
+    pushl n
     pushl mat_sub
-    call calc_det
-    addl $4, %esp
+    call sarrus
+    addl $8, %esp
     movl %eax, det_z
 
     movl sol, %edi # move o vetor de soluções pro edi
