@@ -1,10 +1,13 @@
-# Trabalho 2 de pihs
+# Trabalho 1 de pihs
 # Author: Bruno Cesar e Cristofer Oswald
-# 06/08/2017
+# 06/07/2017
 
-# Programa que resolve sistemas de equações lineares de n equações com n variaveis
-# Valores são flutuantes. A solução deve ser feita com o uso de matriz.
-# Usar La Place e Sarrus para descobrir determinante e Cramer para resolver o sistema.
+# Programa que resolve sistemas de equações lineares de 3 equações com 3 variaveis
+# Valores são inteiros. A solução deve ser feita com o uso de matriz.
+# Usar Sarrus para descobrir determinante e Cramer para resolver o sistema.
+# Deve-se usar malloc para alocar o espaço para a matriz de coeficiente e de resultados
+# A entrada deve ser feita pelo teclado, o programa deve mostrar a matriz lida.
+# E também os resultados para x1, x2 e x3, ao fim deve perguntar por nova execução
 
 # Um relatório em word deve ser desenvolvido, nele deve ser explicado o funcionamento
 # do programa e apontar os problemas no código.
@@ -63,18 +66,23 @@ formaint: .asciz "%d"
 solucao: .asciz "Solução: x = %d, y = %d, z = %d\n"
 debug_linha: .asciz "\ndebug: %d\n"
 debug_valor: .asciz "\nvalor: %d\n"
+info_fim: .asciz "Fim da execução!"
+info_dnv: .asciz "Deseja executar novamente? (s/n)"
+clean_buffer: .string "%*c"
+info_det: .asciz "Impossível resolver, determinante é igual a 0\n"
 
 coeficientes: .int 0
-resultados: .int 0
-mat_sub: .int 0
-val_linha: .int 0
-sol: .int 0
-det_princ: .int 0
-det_x: .int 0
-det_y: .int 0
-det_z: .int 0
-vet_tam: .int 36
-res_tam: .int 12
+dnv:          .int 0
+resultados:   .int 0
+mat_sub:      .int 0
+val_linha:    .int 0
+sol:          .int 0
+det_princ:    .int 0
+det_x:        .int 0
+det_y:        .int 0
+det_z:        .int 0
+vet_tam:      .int 36
+res_tam:      .int 12
 
 .section .text
 .globl main
@@ -503,6 +511,9 @@ inicio:
     addl $4, %esp
     movl %eax, det_princ
 
+    cmpl $0, %eax
+    jz erro_det
+
     # desempilha o backup
     popl %esi
     popl %edi
@@ -633,10 +644,33 @@ inicio:
     call mostra_sol
     addl $4, %esp
 
-    # desempilha o backup
-    popl %esi
-    popl %edi
+verifica:
+    # Libera ambos os vetores
+    call free
+    addl $4, %esp
+
+    call free
+    addl $4, %esp
+
+    pushl $info_dnv
+    call printf
+    pushl $clean_buffer
+    call scanf
+    addl $8, %esp
+    call getchar
+    cmpl $'s', %eax
+    jz inicio
 
 fim:
+    pushl $info_fim
+    call printf
+    addl $4, %esp
+
     pushl $0
     call exit
+
+erro_det:
+    pushl $info_det
+    call printf
+    add $4, %esp
+    jmp verifica
