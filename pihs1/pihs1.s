@@ -66,18 +66,23 @@ formaint: .asciz "%d"
 solucao: .asciz "Solução: x = %d, y = %d, z = %d\n"
 debug_linha: .asciz "\ndebug: %d\n"
 debug_valor: .asciz "\nvalor: %d\n"
+info_fim: .asciz "Fim da execução!"
+info_dnv: .asciz "Deseja executar novamente? (s/n)"
+clean_buffer: .string "%*c"
+info_det: .asciz "Impossível resolver, determinante é igual a 0\n"
 
 coeficientes: .int 0
-resultados: .int 0
-mat_sub: .int 0
-val_linha: .int 0
-sol: .int 0
-det_princ: .int 0
-det_x: .int 0
-det_y: .int 0
-det_z: .int 0
-vet_tam: .int 36
-res_tam: .int 12
+dnv:          .int 0
+resultados:   .int 0
+mat_sub:      .int 0
+val_linha:    .int 0
+sol:          .int 0
+det_princ:    .int 0
+det_x:        .int 0
+det_y:        .int 0
+det_z:        .int 0
+vet_tam:      .int 36
+res_tam:      .int 12
 
 .section .text
 .globl main
@@ -506,6 +511,9 @@ inicio:
     addl $4, %esp
     movl %eax, det_princ
 
+    cmpl $0, %eax
+    jz erro_det
+
     # desempilha o backup
     popl %esi
     popl %edi
@@ -636,10 +644,33 @@ inicio:
     call mostra_sol
     addl $4, %esp
 
-    # desempilha o backup
-    popl %esi
-    popl %edi
+verifica:
+    # Libera ambos os vetores
+    call free
+    addl $4, %esp
+
+    call free
+    addl $4, %esp
+
+    pushl $info_dnv
+    call printf
+    pushl $clean_buffer
+    call scanf
+    addl $8, %esp
+    call getchar
+    cmpl $'s', %eax
+    jz inicio
 
 fim:
+    pushl $info_fim
+    call printf
+    addl $4, %esp
+
     pushl $0
     call exit
+
+erro_det:
+    pushl $info_det
+    call printf
+    add $4, %esp
+    jmp verifica
