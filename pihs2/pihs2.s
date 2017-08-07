@@ -77,10 +77,11 @@ info_fim:     .asciz "Fim da execução!\n"
 info_dnv:     .asciz "Deseja executar novamente? (s/n)"
 clean_buffer: .string "%*c"
 info_det:     .asciz "Impossível resolver, determinante é igual a 0\n"
-
 n:            .int 0 # ordem da matriz
 coeficientes: .int 0 # Matriz entrada
 reduzida:     .int 0 # Matriz reduzida
+i:            .int 1
+j:            .int 1
 dnv:          .int 0 # input sobre repetir
 resultados:   .int 0 # vetor de resultados
 determinantes: .int 0 # vetor de determinantes
@@ -111,7 +112,8 @@ la_place:
 
     cmpl %ebx, 3
     je calc
-    movl n, %ecx
+    movl %ebx, %ecx
+    movl $0, %eax
     jne diminui
 
 volta:
@@ -129,8 +131,43 @@ calc:
     jmp volta
 
 diminui:
+<<<<<<< HEAD
 
+=======
+    pushl %edi # backup
+    pushl %eax
+
+    # reduz
+>>>>>>> ce727008a69942a012076971246d27f3a4ac6d42
     call la_place
+
+    pushl %eax # backup do valor do determinante da matriz reduzida
+
+    # cálculo da potencia do -1
+    movl j, %edx
+    addl i, %edx
+    pushl %edx
+    pushl $-1
+    call pow
+    addl $8, %esp
+
+    # recupero o determinante e multiplico pelo resultado da potencia
+    popl %edx
+    mul %edx
+
+    # move o valor do elemento da matriz e multiplica pelo cofator
+    movl (%edi), %ebx
+    mul %ebx
+
+    # recupera o valor da linha anterior e soma com a atual
+    popl %edx
+    addl %edx, %eax
+
+    # anda na matriz
+    popl %edi
+    incl j
+    addl res_tam, %edi
+
     loop diminui
     jmp volta
 
