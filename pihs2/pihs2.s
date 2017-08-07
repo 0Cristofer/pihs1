@@ -308,15 +308,21 @@ mostra_linha:
     addl $4, %ebp # le a posição no vetor
     movl (%ebp), %esi # move o parametro pro esi
 
-    movl n, %ecx # Contador de loop
+    pushl %esi
+    pushl %edi
 
     # [
     pushl $abre
     call printf
     addl $4, %esp
 
+    popl %edi
+
+    movl n, %ecx # Contador de loop
+
 loop_print:
         pushl %ecx
+        pushl %edi
 
         # Printa o valor
         pushl (%edi)
@@ -329,6 +335,7 @@ loop_print:
         call printf
         addl $4, %esp
 
+        popl %edi
         addl $4, %edi # Anda o vetor pra próxima posição
 
         popl %ecx
@@ -339,6 +346,8 @@ loop_print:
     pushl $fecha
     call printf
     addl $4, %esp
+
+    popl %esi
 
     # Printa o resultado
     pushl (%esi)
@@ -374,6 +383,21 @@ mostra_sistema:
     movl n, %ecx # Contador de loop
 
     loop_printa_linha:
+    pushl %edi
+    pushl %esi
+    pushl %ecx
+
+    pushl (%edi)
+    pushl $debug_valor
+    call printf
+    addl $8, %esp
+
+    popl %ecx
+    popl %esi
+    popl %edi
+
+
+
         # faz novo backup
         pushl %ecx
         pushl %edi
@@ -391,6 +415,7 @@ mostra_sistema:
         popl %ecx
 
         addl res_tam, %edi # pula pra proxima linha
+
         addl $4, %esi # pula pro proximo resultado
 
         loop loop_printa_linha
@@ -427,6 +452,12 @@ le_sistema:
     pushl %ebp # salva o ponteiro base
     movl %esp, %ebp # substiui o ponteiro do frame
 
+    addl $8, %ebp # le o vetor
+    movl (%ebp), %edi # move o parametro pro edi
+
+    addl $4, %ebp # le o vetor
+    movl (%ebp), %esi # move o parametro pro edi
+
     movl $1, %eax # Contador de linhas para o print
     movl n, %ecx # Contador de loops
 
@@ -454,7 +485,7 @@ loop_le_linha:
         popl %ecx
         popl %eax
 
-        addl $12, %edi # pula pra próxima linha
+        addl res_tam, %edi # pula pra próxima linha
         addl $4, %esi # pula pro próximo campo
 
         addl $1, %eax
