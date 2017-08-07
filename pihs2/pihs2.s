@@ -131,14 +131,10 @@ calc:
     jmp volta
 
 diminui:
-<<<<<<< HEAD
-
-=======
     pushl %edi # backup
     pushl %eax
 
     # reduz
->>>>>>> ce727008a69942a012076971246d27f3a4ac6d42
     call la_place
 
     pushl %eax # backup do valor do determinante da matriz reduzida
