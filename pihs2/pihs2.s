@@ -79,7 +79,8 @@ clean_buffer: .string "%*c"
 info_det:     .asciz "Impossível resolver, determinante é igual a 0\n"
 
 n:            .int 0 # ordem da matriz
-coeficientes: .int 0 # matriz entrada
+coeficientes: .int 0 # Matriz entrada
+reduzida:     .int 0 # Matriz reduzida
 dnv:          .int 0 # input sobre repetir
 resultados:   .int 0 # vetor de resultados
 determinantes: .int 0 # vetor de determinantes
@@ -89,6 +90,7 @@ sol:          .int 0
 det_princ:    .int 0
 det_tam:      .int 0 # * n
 vet_tam:      .int 4 # * n * n  (Size of int)
+reduz_tam:    .int 0
 res_tam:      .int 0 # * n
 
 .section .text
@@ -127,9 +129,64 @@ calc:
     jmp volta
 
 diminui:
+
     call la_place
     loop diminui
     jmp volta
+
+# Reduz em 1 a ordem da matriz recebida
+reduz:
+    # Parametros recebidos
+    popl %edi # Matriz
+    popl %eax # i
+    popl %ebx # j
+    popl %edx # Ordem da matriz
+
+    # backup
+    pushl %edi # Matriz
+    pushl %eax # i
+    pushl %ebx # j
+
+    subl $1, %edx # Ordem -= 1
+
+    movl $4, %eax
+    mul %edx
+    mul %edx
+    movl %eax, reduz_tam # reduz_tam tem agora 4 * n-1 * n-1 = tamanho da matriz reduzida (em bytes)
+
+    # Aloca a matriz
+    movl reduz_tam, %ecx
+    pushl %ecx
+    call malloc
+    addl $4, %esp
+    movl %eax, reduzida
+    movl reduzida, %esi
+
+    # Recupera backup
+    popl %ebx
+    popl %eax
+    popl %edi
+
+    # Ecx tem a ordem da nova matriz
+    movl reduz_tam, %ecx
+
+    # newi = 0
+    # newj = 0
+    # noti = %eax
+    # notj = %ebx
+    #
+    # for i < n:
+    #   if(i == noti) break
+    #   for j < n:
+    #       if(j != notj):
+    #           reduzida[newi][newj] = matriz[i][j]
+    #           newj++
+    #    newi++
+    #    newj = 0
+    #
+
+
+
 
 # calcula o determinante de uma matriz. recebe o pontiro pro vetor da matriz como parametro
 # e "retorna" o determinante a partir do registrador eax
