@@ -383,21 +383,6 @@ mostra_sistema:
     movl n, %ecx # Contador de loop
 
     loop_printa_linha:
-    pushl %edi
-    pushl %esi
-    pushl %ecx
-
-    pushl (%edi)
-    pushl $debug_valor
-    call printf
-    addl $8, %esp
-
-    popl %ecx
-    popl %esi
-    popl %edi
-
-
-
         # faz novo backup
         pushl %ecx
         pushl %edi
