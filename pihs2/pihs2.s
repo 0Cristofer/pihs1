@@ -82,6 +82,8 @@ coeficientes: .int 0 # Matriz entrada
 reduzida:     .int 0 # Matriz reduzida
 i:            .int 1
 j:            .int 1
+i1:           .int 1
+j1:           .int 1
 dnv:          .int 0 # input sobre repetir
 resultados:   .int 0 # vetor de resultados
 determinantes: .int 0 # vetor de determinantes
@@ -114,6 +116,7 @@ la_place:
     je calc
     movl %ebx, %ecx
     movl $0, %eax
+    movl $1, j
     jne diminui
 
 volta:
@@ -122,20 +125,43 @@ volta:
 
 calc:
     pushl %edi
+    pushl %ebx
 
     pushl %edi
     call sarrus
     addl $4, %esp
 
+    popl %ebx
     popl %edi
     jmp volta
 
 diminui:
     pushl %edi # backup
     pushl %eax
+    pushl %ebx
+    pushl j
 
-    # reduz
+    pushl %ebx
+
+    pushl %ebx
+    pushl j
+    pushl i
+    pushl %edi
+    call reduz
+    addl $16, %esp
+
+    popl %ebx
+    pushl %esi
+
+    addl $-1, %ebx
+    pushl %ebx
+    pushl %esi
     call la_place
+    addl $8, %esp
+
+    popl %esi
+    # free?
+    popl j
 
     pushl %eax # backup do valor do determinante da matriz reduzida
 
@@ -160,6 +186,7 @@ diminui:
     addl %edx, %eax
 
     # anda na matriz
+    popl %ebx
     popl %edi
     incl j
     addl res_tam, %edi
@@ -168,19 +195,28 @@ diminui:
     jmp volta
 
 # Reduz em 1 a ordem da matriz recebida
+# Recebe a matriz, i e j do elemeto a ser ignorado, e a ordem da matriz
+# retorna a matriz por %esi
 reduz:
-    # Parametros recebidos
-    popl %edi # Matriz
-    popl %eax # i
-    popl %ebx # j
-    popl %edx # Ordem da matriz
+    pushl %ebp # salva o ponteiro base
+    movl %esp, %ebp # substiui o ponteiro do frame
+
+    addl $8, %ebp # le a matriz
+    movl (%ebp), %edi # move o parametro pro edi
+    addl $4, %ebp # i
+    movl (%ebp), %eax # move o parametro pro edx
+    addl $4, %ebp # j
+    movl (%ebp), %ebx # move o parametro pro edx
+    addl $4, %ebp # ordem
+    movl (%ebp), %edx # move o parametro pro edx
 
     # backup
     pushl %edi # Matriz
     pushl %eax # i
     pushl %ebx # j
+    pushl %edx
 
-    subl $1, %edx # Ordem -= 1
+    addl $-1, %edx
 
     movl $4, %eax
     mul %edx
@@ -196,28 +232,53 @@ reduz:
     movl reduzida, %esi
 
     # Recupera backup
+    popl %edx
     popl %ebx
     popl %eax
     popl %edi
 
     # Ecx tem a ordem da nova matriz
-    movl reduz_tam, %ecx
+    movl %edx, %ecx
+    movl $1, i1
+    movl $1, j1
 
-    # newi = 0
-    # newj = 0
-    # noti = %eax
-    # notj = %ebx
-    #
-    # for i < n:
-    #   if(i == noti) break
-    #   for j < n:
-    #       if(j != notj):
-    #           reduzida[newi][newj] = matriz[i][j]
-    #           newj++
-    #    newi++
-    #    newj = 0
-    #
+    pushl %eax
+    pushl %ebx
+    pushl %edx
+fori:
+    cmpl i1, %eax
+    je pula
+    popl %ebx # recupera ordem
+    popl %eax # recupera notj
+    pushl %ecx # salva i
+    movl %ebx, %ecx # move j
+    pushl %eax # salva notj
 
+forj:
+    cmpl j1, %eax
+    je pula2
+    pushl %eax
+    movl (%edi), %eax
+    movl %eax, (%esi)
+    popl %eax
+    addl $4, %esi
+    incl j1
+
+pula2:
+    addl $4, %edi
+    loop forj
+    popl %ecx
+    jmp fimi
+
+pula:
+    movl $4, %eax
+    mul %edx
+    addl %eax, %edx
+
+fimi:
+    incl i1
+    movl $0, j1
+    loop fori
 
 
 
