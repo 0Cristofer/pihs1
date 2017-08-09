@@ -1,55 +1,8 @@
-# Trabalho 1 de pihs
+# Trabalho 2 de pihs
 # Author: Bruno Cesar e Cristofer Oswald
-# 06/07/2017
+# 07/08/2017
 
-# Programa que resolve sistemas de equações lineares de 3 equações com 3 variaveis
-# Valores são inteiros. A solução deve ser feita com o uso de matriz.
-# Usar Sarrus para descobrir determinante e Cramer para resolver o sistema.
-# Deve-se usar malloc para alocar o espaço para a matriz de coeficiente e de resultados
-# A entrada deve ser feita pelo teclado, o programa deve mostrar a matriz lida.
-# E também os resultados para x1, x2 e x3, ao fim deve perguntar por nova execução
-
-# Um relatório em word deve ser desenvolvido, nele deve ser explicado o funcionamento
-# do programa e apontar os problemas no código.
-
-# 0  4  8
-# 12 16 20
-# 24 28 32
-
-# Sarrus: (Calculo da determinante)
-# l1 = x00 * x11 * x22
-# l2 = x01 * x12 * x20
-# l3 = x02 * x10 * x21
-
-# l4 = x02 * x11 * x20
-# l5 = x00 * x12 * x22
-# l6 = x01 * x10 * x22
-
-# A = l1 + l2 + l3
-
-# B = -l4 - l5 - l6
-
-# Det = A + B
-
-# Cramer: (solução do sistema)
-# Para aplicar cramer primeiro calcula - se a determinante da matriz (D)
-# Depois deve-se calcular os determinantes das matrizes substituidas:
-# D1 é o determinante da matriz onde a coluna do X é substituida pelos resultados
-# D2 é o determinante da matriz onde a coluna do Y é substituida pelos resultados
-# D3 é o equivalente para Z.
-# Com estes dados podemos calcular as soluções:
-# de x1 : s1 = D1 / D | x2 : s2 = D2 / D | x3 : s3 = D3 / D
-# O conjunto solução é o conjunto s = {s1,s2,s3}
-
-# Organização:
-# 1) ler os dados e armazenar na matriz e no vetor resultados
-# 2) Calcular determinante da matriz
-# 3) Montar a matriz-x1 e calcular seu determinante D1
-# 4) Montar a matriz-x2 e calcular seu determinante D2
-# 5) Montar a matriz-x3 e calcular seu determinante D3
-# 6) calcular s1, s2 e s3 e exibir os resultados
-# 7) Perguntar se o usuário quer repetir a operação se sim então volte para 1)
-# 8) Fim
+# Programa que resolve sistemas de equações lineares de N equações com N variaveis
 
 .section .data
 titulo:  .asciz "*** Super solucionador de sistemas lineares NxN!!! ***\n"
@@ -57,12 +10,7 @@ info1:   .asciz "Vamos começar pela leitura dos dados:\nPor favor insira a orde
 info2:   .asciz "\n\nInsira os dados da equação %d:\n"
 infomem: .asciz "\nTotal de memória alocada:\n %d (Matriz entrada) + %d (resultados) + %d (determinantes)\n"
 pedex:   .asciz "x%d = "
-info3:   .asciz "" # apagar
-det_x:   .asciz "" # apagar
-det_y:   .asciz "" # apagar
-det_z:   .asciz "" # apagar
 infosis: .asciz "\nO sistema montado foi\n"
-linha:   .asciz "[%d , %d , %d] = %d\n"
 virgula: .asciz " , "
 abre:    .asciz "["
 fecha:   .asciz "]"
@@ -70,13 +18,18 @@ igual:   .asciz " = %d\n"
 pedres:  .asciz "Resultado = "
 formaint: .asciz "%d"
 espaco:   .asciz " "
-solucao:  .asciz "Solução: x = %d, y = %d, z = %d\n"
+solucao:  .asciz "Solução: %d\n"
 debug_linha:  .asciz "\ndebug: %d\n"
 debug_valor:  .asciz "\nvalor: %d\n"
 info_fim:     .asciz "Fim da execução!\n"
 info_dnv:     .asciz "Deseja executar novamente? (s/n)"
 clean_buffer: .string "%*c"
 info_det:     .asciz "Impossível resolver, determinante é igual a 0\n"
+debug_reduz:  .asciz "Entrou no reduz \n"
+debug_laplace: .asciz "Entrou no la place \n"
+debug_sarrus: .asciz "Entrou no sarrus \n"
+det_princ_s:  .asciz "Determinante principal: %d\n"
+det_int_s:    .asciz "Determinante-%d = %d \n"
 n:            .int 0 # ordem da matriz
 coeficientes: .int 0 # Matriz entrada
 reduzida:     .int 0 # Matriz reduzida
@@ -90,11 +43,13 @@ determinantes: .int 0 # vetor de determinantes
 mat_sub:      .int 0
 val_linha:    .int 0
 sol:          .int 0
+num_col:      .int 0
 det_princ:    .int 0
 det_tam:      .int 0 # * n
 vet_tam:      .int 4 # * n * n  (Size of int)
 reduz_tam:    .int 0
 res_tam:      .int 0 # * n
+aux_ordem:    .int 0 # auxiliar ordem redução
 
 .section .text
 .globl main
@@ -112,7 +67,7 @@ la_place:
     addl $4, %ebp # le a ordem
     movl (%ebp), %ebx # move o parametro pro edx
 
-    cmpl %ebx, 3
+    cmpl $3, %ebx
     je calc
     movl %ebx, %ecx
     movl $0, %eax
@@ -136,12 +91,13 @@ calc:
     jmp volta
 
 diminui:
-    pushl %edi # backup
-    pushl %eax
     pushl %ebx
+    pushl %eax
+    pushl %edi # backup
     pushl j
 
     pushl %ebx
+    pushl %ecx
 
     pushl %ebx
     pushl j
@@ -150,7 +106,9 @@ diminui:
     call reduz
     addl $16, %esp
 
+    popl %ecx
     popl %ebx
+    pushl %ecx
     pushl %esi
 
     addl $-1, %ebx
@@ -158,41 +116,70 @@ diminui:
     pushl %esi
     call la_place
     addl $8, %esp
-
     popl %esi
-    # free?
+    popl %ecx
     popl j
-
+    pushl %ecx
     pushl %eax # backup do valor do determinante da matriz reduzida
+    jmp cont
 
-    # cálculo da potencia do -1
-    movl j, %edx
-    addl i, %edx
-    pushl %edx
-    pushl $-1
-    call pow
-    addl $8, %esp
+loopi:
+    loop diminui
+    jmp volta
+
+cont:
+    # Verificando se soma ou subtrai
+    movl j, %eax
+    andl $1, %eax
+    jnz impar
+
+par:
+    movl $-1, %eax # Se for par então subtrai
+    jmp continua
+
+impar:
+    movl $1, %eax # Se for impar então soma
+
+continua:
+    popl %edx
+    popl %ecx
+    popl %edi
+    pushl %edi
+    pushl %ecx
+
 
     # recupero o determinante e multiplico pelo resultado da potencia
-    popl %edx
     mul %edx
+
+    pushl %ebx
+    pushl %eax
+
+    addl $-1, j
+    movl j, %eax
+    movl $4, %ebx
+    mul %ebx
+    addl %eax, %edi
+
+    popl %eax
+    popl %ebx
 
     # move o valor do elemento da matriz e multiplica pelo cofator
     movl (%edi), %ebx
     mul %ebx
 
+    popl %ecx
+
     # recupera o valor da linha anterior e soma com a atual
+    popl %edi
     popl %edx
     addl %edx, %eax
 
     # anda na matriz
     popl %ebx
-    popl %edi
-    incl j
-    addl res_tam, %edi
+    addl $2, j
 
-    loop diminui
-    jmp volta
+    jmp loopi
+
 
 # Reduz em 1 a ordem da matriz recebida
 # Recebe a matriz, i e j do elemeto a ser ignorado, e a ordem da matriz
@@ -218,68 +205,72 @@ reduz:
 
     addl $-1, %edx
 
+    pushl %edx
+
     movl $4, %eax
+    pushl %edx
     mul %edx
+    pop %edx
     mul %edx
     movl %eax, reduz_tam # reduz_tam tem agora 4 * n-1 * n-1 = tamanho da matriz reduzida (em bytes)
 
     # Aloca a matriz
-    movl reduz_tam, %ecx
-    pushl %ecx
+    pushl reduz_tam
     call malloc
     addl $4, %esp
     movl %eax, reduzida
     movl reduzida, %esi
 
     # Recupera backup
-    popl %edx
+    popl %edx # ordem -1
+    popl %ecx # ordem
     popl %ebx
     popl %eax
     popl %edi
 
     # Ecx tem a ordem da nova matriz
-    movl %edx, %ecx
     movl $1, i1
     movl $1, j1
 
-    pushl %eax
-    pushl %ebx
-    pushl %edx
+    movl %ecx, aux_ordem
 fori:
     cmpl i1, %eax
     je pula
-    popl %ebx # recupera ordem
-    popl %eax # recupera notj
-    pushl %ecx # salva i
-    movl %ebx, %ecx # move j
-    pushl %eax # salva notj
+    pushl %eax # salva noti
+    pushl %ecx # salva loopi
+    movl aux_ordem, %ecx
 
 forj:
-    cmpl j1, %eax
+    cmpl j1, %ebx
     je pula2
-    pushl %eax
     movl (%edi), %eax
     movl %eax, (%esi)
-    popl %eax
     addl $4, %esi
-    incl j1
 
 pula2:
+    incl j1
     addl $4, %edi
     loop forj
-    popl %ecx
+    popl %ecx # rec loopi
     jmp fimi
 
 pula:
+    movl aux_ordem, %edx
+    pushl %eax # bk noti
     movl $4, %eax
     mul %edx
-    addl %eax, %edx
+    addl %eax, %edi
 
 fimi:
+    popl %eax # rec noti
     incl i1
-    movl $0, j1
+    movl $1, j1
     loop fori
 
+    movl reduzida, %esi
+
+    popl %ebp
+    ret
 
 
 # calcula o determinante de uma matriz. recebe o pontiro pro vetor da matriz como parametro
@@ -672,6 +663,11 @@ inicio:
     movl %eax, resultados
     movl resultados, %esi
 
+    pushl res_tam
+    call malloc
+    addl $4, %esp
+    movl %eax, determinantes
+
     # Printa informações sobre memoria alocada
     pushl res_tam
     pushl det_tam
@@ -721,7 +717,6 @@ inicio:
     popl %esi
     popl %edi
 
-    jmp fim # testando até aqui
     # aqui o sistema está lido e edi aponta para o começo dos coeficientes e esi para o começo dos resultados
 
     # backup dos dados
@@ -730,12 +725,18 @@ inicio:
 
     pushl n
     pushl %edi
-    call sarrus
+    call la_place
     addl $8, %esp
     movl %eax, det_princ
 
     cmpl $0, %eax
     jz erro_det
+
+    # Printa o determinante principal
+    pushl det_princ
+    pushl $det_princ_s
+    call printf
+    addl $8, %esp
 
     # desempilha o backup
     popl %esi
@@ -743,7 +744,11 @@ inicio:
 
     # ponteiros em seus lugares e det_princ tem o valor do determinante
 
+    movl n, %ecx
+    pushl determinantes
+calc_dets:
     # backup dos dados
+    pushl %ecx
     pushl %edi
     pushl %esi
 
@@ -766,120 +771,64 @@ inicio:
 
     # substitui a coluna pelos resultados
     pushl %esi
-    pushl $0
+    pushl num_col
     pushl mat_sub
     call substitui_coluna
     addl $12, %esp
 
-    # calcula o Dx
+    # calcula o Dn
     pushl n
     pushl mat_sub
-    call sarrus
+    call la_place
     addl $8, %esp
-    movl %eax, det_x
-
-    # copia o vetor de coeficientes para o vetor que será usado para o calculo das outras determinantes
-    pushl vet_tam
-    pushl coeficientes
-    pushl mat_sub
-    call memcpy
-    addl $12, %esp
-
-    # desempilha o backup
-    popl %esi
-    popl %edi
-
-    # backup dos dados
-    pushl %edi
-    pushl %esi
-
-    # substitui a coluna pelos resultados
-    pushl %esi
-    pushl $1
-    pushl mat_sub
-    call substitui_coluna
-    addl $12, %esp
-
-    # calcula o Dy
-    pushl n
-    pushl mat_sub
-    call sarrus
-    addl $8, %esp
-    movl %eax, det_y
-
-    # copia o vetor de coeficientes para o vetor que será usado para o calculo das outras determinantes
-    pushl vet_tam
-    pushl coeficientes
-    pushl mat_sub
-    call memcpy
-    addl $12, %esp
-
-    # desempilha o backup
-    popl %esi
-    popl %edi
-
-    # backup dos dados
-    pushl %edi
-    pushl %esi
-
-    # substitui a coluna pelos resultados
-    pushl %esi
-    pushl $2
-    pushl mat_sub
-    call substitui_coluna
-    addl $12, %esp
-
-    # calcula o Dz
-    pushl n
-    pushl mat_sub
-    call sarrus
-    addl $8, %esp
-    movl %eax, det_z
-
-    movl sol, %edi # move o vetor de soluções pro edi
-
-    # calcula a solução de x
-    movl det_x, %eax
-    movl det_princ, %ebx
-    cltd
-    idiv %ebx
+    movl determinantes, %edi
     movl %eax, (%edi)
 
-    addl $4, %edi # avança o edi pra próxima posição
+    # Printa os determinantes intermediários
+    pushl %eax
+    pushl num_col
+    pushl $det_int_s
+    call printf
+    addl $12, %esp
 
-    # calcula a solução de y
-    movl det_y, %eax
-    movl det_princ, %ebx
-    cltd
-    idiv %ebx
-    movl %eax, (%edi)
-
+    incl num_col
     addl $4, %edi
+    movl %edi, determinantes
 
-    # calcula a solução de z
-    movl det_z, %eax
+    popl %esi
+    popl %edi
+    popl %ecx
+
+    loop calc_dets
+
+    popl determinantes
+
+    movl n, %ecx
+calc_res:
+    pushl %ecx
+
+    movl determinantes, %edi
+
+    # calcula a solução de n
+    movl (%edi), %eax
     movl det_princ, %ebx
     cltd
     idiv %ebx
-    movl %eax, (%edi)
 
-    subl $8, %edi # volta o edi pro começo do vetor
+    addl $4, determinantes
 
-    # imprime a solução
-    pushl %edi
-    call mostra_sol
-    addl $4, %esp
+    pushl %eax
+    pushl $solucao
+    call printf
+    addl $8, %esp
+
+    popl %ecx
+    loop calc_res
 
 verifica:
-    # Libera ambos os vetores
-    call free
-    addl $4, %esp
-
-    call free
-    addl $4, %esp
-
     pushl $info_dnv
     call printf
+
     pushl $clean_buffer
     call scanf
     addl $8, %esp
